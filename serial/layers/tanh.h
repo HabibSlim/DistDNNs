@@ -26,4 +26,8 @@ public:
     }
 
     void update(const IOMat& grad_out) {;}
+
+    vector<IOParam*>* serialize() { return NULL; }
+
+    bool load(IOParam* param) { return false; };
 };

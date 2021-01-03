@@ -11,11 +11,12 @@ protected:
     /* Gradient matrix */
     IOMat m_grad;
 
-    /* Layer name */
+    /* Layer name and type */
     const std::string m_name;
+    bool m_serial;
 
 public:
-    Layer(const char* name) : m_name(name) {};
+    Layer(const char* name, bool serializable=false) : m_name(name), m_serial(serializable) {};
     virtual ~Layer() {};
 
     /* Forward pass: updates the output matrix */
@@ -52,4 +53,13 @@ public:
 
     /* Layer name */
     const std::string& name() { return m_name; }
+
+    /* Layers holds parameters to serialize */
+    bool to_serialize() { return m_serial; }
+
+    /* Serializing layer weights */
+    virtual vector<IOParam*>* serialize() = 0;
+
+    /* Loading layer parameters */
+    virtual bool load(IOParam* param) = 0;
 };

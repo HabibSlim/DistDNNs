@@ -21,24 +21,23 @@ private:
 
     /* Reference to input matrix*/
     const IOMat* m_X;
-    /* Initial data buffer*/
-    float* m_init;
+    
+    /* Parameters serialization */
+    int m_serial_loaded;
+    const int SERIAL_MAX = 2;
 
 public:
-    Linear(int in_features, int out_features, float learning_rate)
-    : Layer("Net::Linear")
+    Linear(int in_features, int out_features, float learning_rate, bool to_init=true)
+    : Layer("Net::Linear", true)
     {
         this->m_inSize  = in_features;
         this->m_outSize = out_features;
-        this->m_lr = learning_rate;
 
-        init();
+        this->m_lr = learning_rate;
+        this->m_serial_loaded = 0;
+
+        if (to_init) init();
     }
-    ~Linear()
-    {
-        /* Freeing initialized variates */
-        delete[] m_init;
-    };
 
     /* Initializing weight matrix: Xavier Initialization */
     void
@@ -46,10 +45,12 @@ public:
     {
         /* Generating variates */
         double std = sqrt(2./(m_inSize + m_outSize));
-        m_init = random_variates(m_inSize*m_outSize, 0, std);
+        float* m_init = random_variates(m_inSize*m_outSize, 0, std);
 
-        m_W = IOMat(Eigen::MatrixXf::Map(m_init, m_inSize, m_outSize));
+        m_W = IOMat::Map(m_init, m_inSize, m_outSize);
         m_b = IOVec::Zero(1, m_outSize);
+
+        delete[] m_init;
     }
 
     void
@@ -87,5 +88,41 @@ public:
         /* Updating weights via SGD */
         m_W = (m_W - m_lr*dW).eval();
         m_b = (m_b - m_lr*db).eval();
+    }
+
+    vector<IOParam*>*
+    serialize()
+    {
+        auto* p_ = new vector<IOParam*>();
+        
+        /* Adding weights and biases */
+        p_->push_back(make_param(m_W.data(), m_W.size()));
+        p_->push_back(make_param(m_b.data(), m_b.size()));
+
+        return p_;
+    }
+
+    bool
+    load(IOParam* param)
+    {
+        /* Copying buffers */
+        if (m_serial_loaded == 0){
+            if (param->size != m_W.size())
+                throw runtime_error("[linear.h] Serialized parameters given do not match with existing layers.");
+            m_W = IOMat::Map(param->p, m_inSize, m_outSize);
+        } else {
+            if (param->size != m_b.size())
+                throw runtime_error("[linear.h] Serialized parameters given do not match with existing layers.");
+            m_b = IOVec::Map(param->p, 1, m_outSize);
+        }
+
+        /* Updating layer state:
+          -> return true if all parameters have been loaded
+        */
+        m_serial_loaded++;
+        if (m_serial_loaded == SERIAL_MAX) {
+            m_serial_loaded = 0;
+            return true;
+        } else return false;
     }
 };

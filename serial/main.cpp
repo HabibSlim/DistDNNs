@@ -40,6 +40,7 @@ train_epoch(Model* net,
     return (avg_loss/count);
 }
 
+/* Evaluate a model on the test set */
 float
 evaluate(Model* net,
          vector<DataMat>* test_ims,
@@ -75,8 +76,8 @@ main(int argc, char **argv)
 {
     /* Loading dataset */
     int BATCH_SIZE = 64;
-    vector<DataMat>* mnist_train_ims = load_images(MNIST_TRAIN, BATCH_SIZE);
-    vector<DataMat>* mnist_train_labels = load_labels(MNIST_TRAIN, BATCH_SIZE);
+    vector<DataMat>* mnist_train_ims    = load_images(FASHION_MNIST_TRAIN, BATCH_SIZE);
+    vector<DataMat>* mnist_train_labels = load_labels(FASHION_MNIST_TRAIN, BATCH_SIZE);
 
     /* Instantiating MLP */
     int n_features = 28*28;
@@ -109,7 +110,21 @@ main(int argc, char **argv)
                   << std::endl;
     }
 
+    /* Serializing network weights */
+    vector<IOParam*>* serial_net = net.serialize();
+
+    MLP new_net(n_features, n_labels, 256, 64, 0.01);
+    new_net.load(serial_net);
+    val_acc = evaluate(&new_net,
+                        mnist_train_ims,
+                        mnist_train_labels);
+
+    std::cout << "Serialized net acc.=" << int(val_acc) << "%" << std::endl;
+
     /* Freeing memory */
+    for (auto const& p: *serial_net) delete p;
+    delete serial_net;
+
     delete mnist_train_ims;
     delete mnist_train_labels;
 

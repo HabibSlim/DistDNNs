@@ -18,9 +18,6 @@ private:
     IOMat m_W;
     /* Bias vector */
     IOVec m_b;
-
-    /* Reference to input matrix*/
-    const IOMat* m_X;
     
     /* Parameters serialization */
     int m_serial_loaded;
@@ -45,12 +42,12 @@ public:
     {
         /* Generating variates */
         double std = sqrt(2./(m_inSize + m_outSize));
-        float* m_init = random_variates(m_inSize*m_outSize, 0, std);
+        float* variates = random_normal(m_inSize*m_outSize, 0, std);
 
-        m_W = IOMat::Map(m_init, m_inSize, m_outSize);
+        m_W = IOMat::Map(variates, m_inSize, m_outSize);
         m_b = IOVec::Zero(1, m_outSize);
 
-        delete[] m_init;
+        delete[] variates;
     }
 
     void

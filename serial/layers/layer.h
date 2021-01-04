@@ -11,38 +11,39 @@ protected:
     /* Gradient matrix */
     IOMat m_grad;
 
-    /* Layer name and type */
+    /* Reference to input matrix*/
+    const IOMat* m_X;
+
+    /* Layer name */
     const std::string m_name;
+    /* Layer properties */
     bool m_serial;
+    bool m_train_only;
 
 public:
-    Layer(const char* name, bool serializable=false) : m_name(name), m_serial(serializable) {};
+    Layer(const char* name,
+          bool serialize=false,
+          bool train_only=false) :
+          m_name(name),
+          m_serial(serialize),
+          m_train_only(train_only) {};
+
     virtual ~Layer() {};
 
     /* Forward pass: updates the output matrix */
     virtual void forward(const IOMat& input) = 0;
     void
-    forward(const DataMat& X)
+    forward(const IOMat& X, bool eval)
     {
-        const IOMat& X_float = X.cast<float>();
-        forward(X_float);
+        if(eval && train_only()) {
+            m_Z = X;
+        }
+        else
+            forward(X);
     }
-    const IOMat& out() { return m_Z; }
 
-    /* Overload for forward passes */
-    const IOMat&
-    operator()(const IOMat& X)
-    {
-        forward(X);
-        return m_Z;
-    }
-    const IOMat&
-    operator()(const DataMat& X)
-    {
-        const IOMat& X_float = X.cast<float>();
-        forward(X_float);
-        return m_Z;
-    }
+    /* Fetching forward output */
+    const IOMat& out() { return m_Z; }
 
     /* Backpropagation: compute grad and update weights  */
     virtual void backward(const IOMat& grad_out) = 0;
@@ -54,8 +55,11 @@ public:
     /* Layer name */
     const std::string& name() { return m_name; }
 
-    /* Layers holds parameters to serialize */
+    /* Holds parameters to serialize */
     bool to_serialize() { return m_serial; }
+
+    /* Train-only layer */
+    bool train_only() { return m_train_only; }
 
     /* Serializing layer weights */
     virtual vector<IOParam*>* serialize() = 0;

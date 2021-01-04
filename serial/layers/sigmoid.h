@@ -6,9 +6,6 @@
 
 
 class Sigmoid: public Layer {
-private:
-    const IOMat* m_X;
-
 public:
     Sigmoid() : Layer("Act::Sigmoid") {};
 

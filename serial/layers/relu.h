@@ -6,9 +6,6 @@
 
 
 class ReLU: public Layer {
-private:
-    const IOMat* m_X;
-
 public:
     ReLU() : Layer("Act::ReLU") {};
 

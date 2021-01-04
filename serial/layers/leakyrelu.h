@@ -6,7 +6,6 @@
 
 class LeakyReLU: public Layer {
 private:
-    const IOMat* m_X;
     float m_leak;
 
 public:

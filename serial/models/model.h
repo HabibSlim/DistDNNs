@@ -88,7 +88,7 @@ public:
 
     /* Forward pass */
     void
-    forward(const IOMat& X)
+    forward(const IOMat& X, bool eval=false)
     {
         /* Instantiating layers */
         init();
@@ -98,17 +98,17 @@ public:
             throw runtime_error("[model.h] No layer registered in the model.");
 
         /* First forward pass */
-        n->l->forward(X);
+        n->l->forward(X, eval);
 
         while (n->next != NULL && n->next->l != NULL) {
             n = n->next;
-            n->l->forward(n->prev->l->out());
+            n->l->forward(n->prev->l->out(), eval);
         }
     }
     const IOMat&
-    operator()(const IOMat& X)
+    operator()(const IOMat& X, bool eval=false)
     {
-        forward(X);
+        forward(X, eval);
         return m_DAG_last->prev->l->out();
     }
 

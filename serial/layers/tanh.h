@@ -6,9 +6,6 @@
 
 
 class TanH: public Layer {
-private:
-    const IOMat* m_X;
-
 public:
     TanH() : Layer("Act::TanH") {};
 

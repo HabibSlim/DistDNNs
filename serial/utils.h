@@ -14,6 +14,8 @@
 using namespace std;
 using namespace Eigen;
 
+
+/* Dataset information */
 enum
 Dataset
 {
@@ -37,8 +39,10 @@ map<Dataset,string> label_files =
          {FASHION_MNIST_TRAIN, "./data/F-MNIST/train-labels.ubyte"},
          {FASHION_MNIST_TEST,  "./data/F-MNIST/test-labels.ubyte"}};
 
-random_device rd{};
-mt19937 gen{rd()};
+
+/* PRNGs */
+random_device RNG_DEV{};
+mt19937 gen{RNG_DEV()};
 
 
 int
@@ -147,7 +151,7 @@ load_labels(Dataset dset, int batch_size)
 
 /* Generating Gaussian variates */
 float*
-random_variates(int n_variates, double mu, double sigma)
+random_normal(int n_variates, double mu, double sigma)
 {
     std::normal_distribution<> d{mu,sigma};
 

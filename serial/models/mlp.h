@@ -3,6 +3,7 @@
 #include "../layers/linear.h"
 #include "../layers/leakyrelu.h"
 #include "../layers/softmax.h"
+#include "../layers/dropout.h"
 #include "../models/model.h"
 
 
@@ -34,9 +35,11 @@ public:
     {
         add(new Linear(m_inSize, m_size_h1, m_lr));
         add(new LeakyReLU());
+        add(new Dropout(0.2));
 
         add(new Linear(m_size_h1, m_size_h2, m_lr));
         add(new LeakyReLU());
+        add(new Dropout(0.2));
 
         add(new Linear(m_size_h2, m_outSize, m_lr));
         add(new Softmax());

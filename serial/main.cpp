@@ -57,7 +57,7 @@ evaluate(Model* net,
         labels = test_labels->at(i).cast<float>();
 
         /* Forward pass */
-        pred = (*net)(images);
+        pred = (*net)(images, true);
 
         /* Comparing real and predicted classes */
         for (int i=0; i<pred.rows(); i++) {

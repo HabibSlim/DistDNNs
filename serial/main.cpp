@@ -10,16 +10,16 @@
 float
 train_epoch(Model* net,
             Loss* loss,
-            vector<DataMat>* train_ims,
+            vector<DataMat>* train_images,
             vector<DataMat>* train_labels)
 {
     IOMat images, labels, pred;
 
-    int n_batches = 100, count = 0; 
+    int n_batches = train_images->size(), count = 0; 
     float avg_loss = 0.0;
 
     for (int i=0; i<n_batches; i++) {
-        images = train_ims->at(i).cast<float>()/255.;
+        images = train_images->at(i).cast<float>()/255.;
         labels = train_labels->at(i).cast<float>();
 
         /* Forward pass */
@@ -43,26 +43,26 @@ train_epoch(Model* net,
 /* Evaluate a model on the test set */
 float
 evaluate(Model* net,
-         vector<DataMat>* test_ims,
+         vector<DataMat>* test_images,
          vector<DataMat>* test_labels)
 {
     IOMat::Index r1, r2;
     IOMat images, labels, pred;
 
-    int n_batches = test_ims->size(); 
-    int acc_count = 0, total = n_batches*test_ims->at(0).rows();
+    int n_batches = test_images->size(); 
+    int acc_count = 0, total = n_batches*test_images->at(0).rows();
 
     for (int i=0; i<n_batches; i++) {
-        images = test_ims->at(i).cast<float>()/255.;
+        images = test_images->at(i).cast<float>()/255.;
         labels = test_labels->at(i).cast<float>();
 
         /* Forward pass */
         pred = (*net)(images, true);
 
         /* Comparing real and predicted classes */
-        for (int i=0; i<pred.rows(); i++) {
-            pred.row(i).maxCoeff(&r1);
-            labels.row(i).maxCoeff(&r2);
+        for (int j=0; j<pred.rows(); j++) {
+            pred.row(j).maxCoeff(&r1);
+            labels.row(j).maxCoeff(&r2);
             acc_count += (r1 == r2);
         }
     }
@@ -76,8 +76,15 @@ main(int argc, char **argv)
 {
     /* Loading dataset */
     int BATCH_SIZE = 64;
-    vector<DataMat>* mnist_train_ims    = load_images(FASHION_MNIST_TRAIN, BATCH_SIZE);
-    vector<DataMat>* mnist_train_labels = load_labels(FASHION_MNIST_TRAIN, BATCH_SIZE);
+    vector<DataMat> *train_images, *train_labels, *test_images, *test_labels;
+
+    /* Training set */
+    train_images = load_images(MNIST_TRAIN, BATCH_SIZE);
+    train_labels = load_labels(MNIST_TRAIN, BATCH_SIZE);
+
+    /* Test set */
+    test_images = load_images(MNIST_TEST, BATCH_SIZE);
+    test_labels = load_labels(MNIST_TEST, BATCH_SIZE);
 
     /* Instantiating MLP */
     int n_features = 28*28;
@@ -88,25 +95,23 @@ main(int argc, char **argv)
     /* Loss function */
     MSELoss loss;
  
-    /* Training for one epoch */
-    IOMat images, labels, pred;
-
+    /* Training the network */
     float avg_loss = 0, val_acc;
-    int n_epochs = 1;
+    int n_epochs = 10;
     for (int j=0; j<n_epochs; j++) {
         /* Training for a single epoch */
         avg_loss = train_epoch(&net, &loss,
-                               mnist_train_ims,
-                               mnist_train_labels);
+                               train_images,
+                               train_labels);
 
         /* Computing validation accuracy */
         val_acc = evaluate(&net,
-                           mnist_train_ims,
-                           mnist_train_labels);
+                           test_images,
+                           test_labels);
 
-        std::cout << "Epoch="     << (j+1)        << ", "
-                  << "Loss="      << avg_loss     << ", "
-                  << "Val. Acc.=" << int(val_acc) << "%"
+        std::cout << "Epoch="     << (j+1)    << ", "
+                  << "Loss="      << avg_loss << ", "
+                  << "Val. Acc.=" << int(val_acc*100)/float(100) << "%"
                   << std::endl;
     }
 
@@ -116,17 +121,20 @@ main(int argc, char **argv)
     MLP new_net(n_features, n_labels, 256, 64, 0.01);
     new_net.load(serial_net);
     val_acc = evaluate(&new_net,
-                        mnist_train_ims,
-                        mnist_train_labels);
+                       test_images,
+                       test_labels);
 
-    std::cout << "Serialized net acc.=" << int(val_acc) << "%" << std::endl;
+    std::cout << "Serialized net acc.="
+              << int(val_acc*100)/float(100) << "%" << std::endl;
 
     /* Freeing memory */
     for (auto const& p: *serial_net) delete p;
     delete serial_net;
 
-    delete mnist_train_ims;
-    delete mnist_train_labels;
+    delete train_images;
+    delete train_labels;
+    delete test_images;
+    delete test_labels;
 
     return 0;
 }

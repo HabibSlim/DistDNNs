@@ -161,3 +161,12 @@ random_normal(int n_variates, double mu, double sigma)
 
     return variates;
 }
+/* In-place alternative */
+void
+random_normal(float* buffer, int n_variates, double mu, double sigma)
+{
+    std::normal_distribution<> d{mu,sigma};
+
+    for (int i=0; i<n_variates; i++)
+        buffer[i] = d(gen);
+}

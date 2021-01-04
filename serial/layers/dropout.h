@@ -9,8 +9,11 @@ class Dropout: public Layer {
 private:
     /* Dropout mask */
     IOMat m_M;
+
     /* Gaussian standard deviation */
     float m_std;
+    /* Gaussian variates buffer */
+    float* m_variates;
 
 public:
     Dropout(float rate) : Layer("Net::Dropout", false, true)
@@ -19,15 +22,21 @@ public:
             throw new runtime_error("[dropout.h] Invalid rate parameter.");
 
         m_std = sqrt(rate*(1 - rate));
+        m_variates = NULL;
     };
 
     void
     forward(const IOMat& X)
     {
-        /* Generating Gaussian mask */
-        float* m_init = random_normal(X.size(), 1, m_std);
-        m_M = IOMat::Map(m_init, X.rows(), X.cols());
-        delete[] m_init;
+        /* Creating Gaussian mask */
+        if (m_variates == NULL) {
+            m_variates = random_normal(X.size(), 1, m_std);
+            m_M = IOMat::Map(m_variates, X.rows(), X.cols());
+
+            delete[] m_variates;
+        } else {
+            random_normal(m_M.data(), m_M.size(), 1, m_std);
+        }
 
         /* Applying mask to input */
         m_Z = X.cwiseProduct(m_M);

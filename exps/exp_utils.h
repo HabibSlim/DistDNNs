@@ -3,7 +3,7 @@
 */
 using namespace std;
 
-#include <stdio>
+#include <stdio.h>
 #include <algorithm>
 #include "../types.h"
 #include "../losses/loss.h"
@@ -101,18 +101,15 @@ shuffle_indexes(uint *idx_tot, uint n_batches, int p)
 
 /* Logging experiments results */
 void
-log_exp(char* output, double* data)
+log_exp(char* fname, double* data, int size)
 {
-    char fname[80];
-    sprintf(fname, "%s.txt", output);
-
     FILE* fh = fopen(fname, "a");
 
     if(fh == NULL) {
         perror("Error writing to output.");
     } else {
-        for (int i=0; i<NBEXPERIMENTS; i++)
-            fprintf(fh, "%d ", (int)(data[i]*1000));
+        for (int i=0; i<size; i++)
+            fprintf(fh, "%f ", data[i]);
         /* separator */
         fprintf(fh, "\n\n");
     }

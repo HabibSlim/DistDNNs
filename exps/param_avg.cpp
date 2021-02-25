@@ -1,18 +1,17 @@
 #include <iostream>
 #include <chrono>
 #include <stdio.h>
-
 #include "mpi.h"
 #include "../utils.h"
 #include "../models/mlp.h"
 #include "../losses/mse.h"
 #include "exp_utils.h"
 
+
 #define MASTER_RANK 0
 
 #define EXP_NAME    "param_avg"
-
-#define EVAL_ACC    0
+#define EVAL_ACC    1
 #define N_EPOCHS    5
 #define BATCH_SIZE  64
 
@@ -96,9 +95,11 @@ main(int argc, char **argv)
 
     /* Experiments logs */
     double *cmp_time, *val_accs, *train_losses;
-    cmp_time     = new double[N_EPOCHS];
-    val_accs     = new double[N_EPOCHS];
-    train_losses = new double[N_EPOCHS];
+    if (pid == MASTER_RANK) {
+        cmp_time     = new double[N_EPOCHS];
+        val_accs     = new double[N_EPOCHS];
+        train_losses = new double[N_EPOCHS];
+    }
 
 
     /* Training loop */
@@ -214,6 +215,10 @@ main(int argc, char **argv)
     if (pid == MASTER_RANK) {
         delete test_images;
         delete test_labels;
+
+        delete val_accs;
+        delete train_losses;
+        delete cmp_time;
     }
 
     MPI::Finalize();

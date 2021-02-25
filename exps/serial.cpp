@@ -1,10 +1,19 @@
 #include <iostream>
+#include <chrono>
 #include "../utils.h"
 #include "../models/model.h"
 #include "../models/mlp.h"
 #include "../losses/mse.h"
 #include "../losses/xe.h"
 #include "exp_utils.h"
+
+
+#define MASTER_RANK 0
+
+#define EXP_NAME    "baseline"
+#define EVAL_ACC    1
+#define N_EPOCHS    5
+#define BATCH_SIZE  64
 
 
 /* Train a model on the whole dataset for a single epoch */
@@ -46,7 +55,6 @@ int
 main(int argc, char **argv)
 {
     /* Loading dataset */
-    int BATCH_SIZE = 64;
     vector<DataMat> *train_images, *train_labels, *test_images, *test_labels;
 
     /* Training set */
@@ -57,55 +65,78 @@ main(int argc, char **argv)
     test_images = load_images(MNIST_TEST, BATCH_SIZE);
     test_labels = load_labels(MNIST_TEST, BATCH_SIZE);
 
+
     /* Instantiating MLP */
     int n_features = 28*28;
     int n_labels   = 10;
 
     MLP net(n_features, n_labels, 256, 64, 0.01);
-
-    /* Loss function */
     MSELoss loss;
+
+
+    /* Experiments logs */
+    double *cmp_time, *val_accs, *train_losses;
+    cmp_time     = new double[N_EPOCHS];
+    val_accs     = new double[N_EPOCHS];
+    train_losses = new double[N_EPOCHS];
+
  
     /* Training the network */
     float avg_loss = 0, val_acc;
-    int n_epochs = 10;
-    for (int j=0; j<n_epochs; j++) {
+    chrono::time_point<chrono::high_resolution_clock> t0, t1;
+    for (int j=0; j<N_EPOCHS; j++) {
+        if (!EVAL_ACC) {
+            t0 = chrono::high_resolution_clock::now();
+        }
+
         /* Training for a single epoch */
         avg_loss = train_epoch_full(&net, &loss,
                                     train_images,
                                     train_labels);
 
-        /* Computing validation accuracy */
-        val_acc = evaluate(&net,
-                           test_images,
-                           test_labels);
+        std::cout << "Epoch="  << (j+1)
+                << ", Loss=" << avg_loss;
+        if (EVAL_ACC) {
+            val_acc = evaluate(&net,
+                            test_images,
+                            test_labels);
+            std::cout << ", Val.Acc.=" << int(val_acc*100)/float(100);
 
-        std::cout << "Epoch="     << (j+1)    << ", "
-                  << "Loss="      << avg_loss << ", "
-                  << "Val. Acc.=" << int(val_acc*100)/float(100) << "%"
-                  << std::endl;
+            train_losses[j] = avg_loss;
+            val_accs[j]     = val_acc;
+        } else {
+            t1 = chrono::high_resolution_clock::now();
+            cmp_time[j] = chrono::duration_cast<chrono::milliseconds>(t1 - t0).count();
+        }
+        std::cout << std::endl;
     }
 
-    /* Serializing network weights */
-    vector<IOParam*>* serial_net = net.serialize();
 
-    MLP new_net(n_features, n_labels, 256, 64, 0.01);
-    new_net.load(serial_net);
-    val_acc = evaluate(&new_net,
-                       test_images,
-                       test_labels);
+    /* Logging measurements */
+    char fname[200];
+    if (EVAL_ACC) {
+        /* Master val. accuracies */
+        sprintf(fname, "./logs/%s_B%d_acc.txt", EXP_NAME, BATCH_SIZE);
+        log_exp(fname, val_accs, N_EPOCHS);
 
-    std::cout << "Serialized net acc.="
-              << int(val_acc*100)/float(100) << "%" << std::endl;
+        /* Master losses */
+        sprintf(fname, "./logs/%s_B%d_loss.txt", EXP_NAME, BATCH_SIZE);
+        log_exp(fname, train_losses, N_EPOCHS);
+    } else {
+        /* Epoch durations */
+        sprintf(fname, "./logs/%s_B%d_time.txt", EXP_NAME, BATCH_SIZE);    
+        log_exp(fname, cmp_time, N_EPOCHS);
+    }
+
 
     /* Freeing memory */
-    for (auto const& p: *serial_net) delete p;
-
-    delete serial_net;
     delete train_images;
     delete train_labels;
     delete test_images;
     delete test_labels;
+    delete val_accs;
+    delete train_losses;
+    delete cmp_time;
 
     return 0;
 }

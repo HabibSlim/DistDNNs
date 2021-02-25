@@ -153,7 +153,7 @@ load_labels(Dataset dset, int batch_size)
 float*
 random_normal(int n_variates, double mu, double sigma)
 {
-    std::normal_distribution<> d{mu,sigma};
+    normal_distribution<> d{mu,sigma};
 
     float* variates = new float[n_variates];
     for (int i=0; i<n_variates; i++)
@@ -165,7 +165,7 @@ random_normal(int n_variates, double mu, double sigma)
 void
 random_normal(float* buffer, int n_variates, double mu, double sigma)
 {
-    std::normal_distribution<> d{mu,sigma};
+    normal_distribution<> d{mu,sigma};
 
     for (int i=0; i<n_variates; i++)
         buffer[i] = d(gen);

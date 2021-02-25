@@ -1,13 +1,17 @@
+CMP	= runmpi runserial test
+
 # Experiments
 serial:
 	make -f ./make/makefile.serial
 
-multiple_reduce: # Multiple reduce averaging
-	make -f ./make/makefile.mpi multiple
+param_avg: # -> Multiple parameter averaging
+	make -f ./make/makefile.mpi param_avg
 
-single_reduce:   # Single reduce averaging
-	make -f ./make/makefile.mpi single
+# Test target
+test:
+	make -f ./make/makefile.serial test
 
 .PHONY: clean
 clean:
-	rm *.o
+	rm -f *.o
+	rm -f $(CMP)

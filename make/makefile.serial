@@ -1,5 +1,4 @@
 OBJS	= serial.o
-SOURCE	= serial.cpp
 HEADER	= types.h utils.h activations/leakyrelu.h activations/relu.h layers/conv.h layers/net.h layers/linear.h layers/layer.h
 OUT		= runserial
 CC	 	= g++
@@ -9,11 +8,11 @@ LFLAGS	= -lm
 all: clean $(OBJS)
 	$(CC) -g $(OBJS) -o $(OUT) $(LFLAGS)
 
-serial.o: serial.cpp
-	$(CC) $(FLAGS) serial.cpp -std=c++14
+serial.o: ./exps/serial.cpp
+	$(CC) $(FLAGS) ./exps/serial.cpp -std=c++14
 
-test.o: clean test.cpp
-	$(CC) $(FLAGS) test.cpp -std=c++14
+test.o: clean ./exps/test.cpp
+	$(CC) $(FLAGS) ./exps/test.cpp -std=c++14
 
 .PHONY: clean
 clean:

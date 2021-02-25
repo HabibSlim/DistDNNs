@@ -1,6 +1,8 @@
 /* Layer abstract class */
 #pragma once
+
 #include <string>
+#include <vector>
 #include "../types.h"
 
 
@@ -15,7 +17,7 @@ protected:
     const IOMat* m_X;
 
     /* Layer name */
-    const std::string m_name;
+    const string m_name;
     /* Layer properties */
     bool m_serial;
     bool m_train_only;
@@ -53,7 +55,7 @@ public:
     virtual void update(const IOMat& grad_out) = 0;
 
     /* Layer name */
-    const std::string& name() { return m_name; }
+    const string& name() { return m_name; }
 
     /* Holds parameters to serialize */
     bool to_serialize() { return m_serial; }

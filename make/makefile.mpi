@@ -1,5 +1,4 @@
-OBJS	= single_reduce.o multiple_reduce.o test.o
-SOURCE	= ./exps/single_reduce.cpp ./exps/multiple_reduce.cpp
+OBJS	= param_avg.o test.o
 HEADER	= types.h utils.h activations/leakyrelu.h activations/relu.h layers/conv.h layers/net.h layers/linear.h layers/layer.h
 OUT		= runmpi
 CC	 	= mpic++
@@ -8,19 +7,13 @@ LFLAGS	= -lm
 
 # Experiments
 
-multiple: clean multiple_reduce.o
-	$(CC) -g multiple_reduce.o -o $(OUT) $(LFLAGS)
-
-single: clean single_reduce.o
-	$(CC) -g single_reduce.o -o $(OUT) $(LFLAGS)
+param_avg: clean param_avg.o
+	$(CC) -g param_avg.o -o $(OUT) $(LFLAGS)
 
 # Objects
 
-single_reduce.o: ./exps/single_reduce.cpp
-	$(CC) $(FLAGS) ./exps/single_reduce.cpp -std=c++14
-
-multiple_reduce.o: ./exps/multiple_reduce.cpp
-	$(CC) $(FLAGS) ./exps/multiple_reduce.cpp -std=c++14
+param_avg.o: ./exps/param_avg.cpp
+	$(CC) $(FLAGS) ./exps/param_avg.cpp -std=c++14
 
 test.o: clean ./exps/test.cpp
 	$(CC) $(FLAGS) ./exps/test.cpp -std=c++14

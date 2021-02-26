@@ -9,22 +9,12 @@
 
 
 #define MASTER_RANK 0
-
 #define EXP_NAME    "param_avg"
-#define EVAL_ACC    1
-#define N_EPOCHS    5
-#define BATCH_SIZE  64
 
 
 int
 main(int argc, char **argv)
 {
-    /* Training parameters */
-    uint N_FEATURES = 28*28;
-    uint N_LABELS   = 10;
-    uint N_BATCHES  = int(MNIST_TRAIN/BATCH_SIZE);
-
-
     /* Initializing MPI */
     MPI::Init(argc, argv);
 
@@ -32,18 +22,43 @@ main(int argc, char **argv)
     pcount = MPI::COMM_WORLD.Get_size();
     pid    = MPI::COMM_WORLD.Get_rank();
 
-    if (pid == MASTER_RANK)
-        printf("[param_avg] Number of processors: %d\n", pcount);
 
-    /* Averaging frequency */
-    int avg_freq = (argc == 2) ? atoi(argv[1]) : 0;
+    /* Parsing input parameters */
+    int AVG_FREQ = 0, BATCH_SIZE = 64, N_EPOCHS = 1, EVAL_ACC = 0;
+    ParamParser params(argc, argv);
+    if (params.opt_exists("-avg_freq")) {
+        AVG_FREQ = params.get_opt("-avg_freq");
+    }
+    if (params.opt_exists("-batch_size")) {
+        BATCH_SIZE = params.get_opt("-batch_size");
+    }
+    if (params.opt_exists("-n_epochs")) {
+        N_EPOCHS = params.get_opt("-n_epochs");
+    }
+    if (params.opt_exists("-eval_acc")) {
+        EVAL_ACC = params.get_opt("-eval_acc");
+    }
 
+    /* Printing all parameters */
     if (pid == MASTER_RANK) {
-        if (avg_freq == 0)
+        if (EVAL_ACC == 0)
+            printf("[param_avg] Evaluating speedup.\n");
+        else
+            printf("[param_avg] Evaluating accuracy/training loss.\n");
+        printf("[param_avg] Number of processors: %d\n", pcount);
+        if (AVG_FREQ == 0)
             printf("[param_avg] Averaging a single time at the end of training.\n");
         else
-            printf("[param_avg] Averaging every %d epochs\n", avg_freq);
+            printf("[param_avg] Averaging every %d epochs\n", AVG_FREQ);
+        printf("[param_avg] Batch size: %d\n", BATCH_SIZE);
+        printf("[param_avg] Number of epochs: %d\n", N_EPOCHS);
     }
+
+
+    /* Training parameters */
+    uint N_FEATURES = 28*28;
+    uint N_LABELS   = 10;
+    uint N_BATCHES  = int(MNIST_TRAIN/BATCH_SIZE);
 
 
     /* Loading dataset */
@@ -93,14 +108,8 @@ main(int argc, char **argv)
     data_split = new uint[batch_per_p];
 
 
-    /* Experiments logs */
-    double *cmp_time, *val_accs, *train_losses;
-    if (pid == MASTER_RANK) {
-        cmp_time     = new double[N_EPOCHS];
-        val_accs     = new double[N_EPOCHS];
-        train_losses = new double[N_EPOCHS];
-    }
-
+    /* Experiment logs */
+    double cmp_time[N_EPOCHS], val_accs[N_EPOCHS], train_losses[N_EPOCHS];
 
     /* Training loop */
     float val_acc;
@@ -128,7 +137,7 @@ main(int argc, char **argv)
         MPI::COMM_WORLD.Barrier();
 
         /* Reducing weights */
-        if (avg_freq!=0 && j%avg_freq==0 && j!=N_EPOCHS-1){
+        if (AVG_FREQ!=0 && j%AVG_FREQ==0 && j!=N_EPOCHS-1){
             serial_net = net.serialize();
             for (auto const& p: *serial_net) {
                 /* Applying sum reduction */
@@ -163,6 +172,7 @@ main(int argc, char **argv)
         }
     }
 
+
     /* Final weights reduction */
     serial_net = net.serialize();
     for (auto const& p: *serial_net) {
@@ -194,15 +204,15 @@ main(int argc, char **argv)
         char fname[200];
         if (EVAL_ACC) {
             /* Master val. accuracies */
-            sprintf(fname, "./logs/%s_N%d_k%d_B%d_acc.txt", EXP_NAME, pcount, avg_freq, BATCH_SIZE);
+            sprintf(fname, "./logs/%s_N%d_k%d_B%d_acc.txt", EXP_NAME, pcount, AVG_FREQ, BATCH_SIZE);
             log_exp(fname, val_accs, N_EPOCHS);
 
             /* Master losses */
-            sprintf(fname, "./logs/%s_N%d_k%d_B%d_loss.txt", EXP_NAME, pcount, avg_freq, BATCH_SIZE);
+            sprintf(fname, "./logs/%s_N%d_k%d_B%d_loss.txt", EXP_NAME, pcount, AVG_FREQ, BATCH_SIZE);
             log_exp(fname, train_losses, N_EPOCHS);
         } else {
             /* Epoch durations */
-            sprintf(fname, "./logs/%s_N%d_k%d_B%d_time.txt", EXP_NAME, pcount, avg_freq, BATCH_SIZE);    
+            sprintf(fname, "./logs/%s_N%d_k%d_B%d_time.txt", EXP_NAME, pcount, AVG_FREQ, BATCH_SIZE);    
             log_exp(fname, cmp_time, N_EPOCHS);        
         }
     }
@@ -215,10 +225,6 @@ main(int argc, char **argv)
     if (pid == MASTER_RANK) {
         delete test_images;
         delete test_labels;
-
-        delete val_accs;
-        delete train_losses;
-        delete cmp_time;
     }
 
     MPI::Finalize();

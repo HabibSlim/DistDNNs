@@ -9,11 +9,7 @@
 
 
 #define MASTER_RANK 0
-
 #define EXP_NAME    "baseline"
-#define EVAL_ACC    1
-#define N_EPOCHS    5
-#define BATCH_SIZE  64
 
 
 /* Train a model on the whole dataset for a single epoch */
@@ -54,6 +50,33 @@ train_epoch_full(Model* net,
 int
 main(int argc, char **argv)
 {
+    /* Parsing input parameters */
+    int BATCH_SIZE = 64, N_EPOCHS = 1, EVAL_ACC = 0;
+    ParamParser params(argc, argv);
+    if (params.opt_exists("-batch_size")) {
+        BATCH_SIZE = params.get_opt("-batch_size");
+    }
+    if (params.opt_exists("-n_epochs")) {
+        N_EPOCHS = params.get_opt("-n_epochs");
+    }
+    if (params.opt_exists("-eval_acc")) {
+        EVAL_ACC = params.get_opt("-eval_acc");
+    }
+
+    /* Printing all parameters */
+    if (EVAL_ACC == 0)
+        printf("[param_avg] Evaluating speedup.\n");
+    else
+        printf("[param_avg] Evaluating accuracy/training loss.\n");
+    printf("[param_avg] Batch size: %d\n", BATCH_SIZE);
+    printf("[param_avg] Number of epochs: %d\n", N_EPOCHS);
+
+
+    /* Training parameters */
+    uint N_FEATURES = 28*28;
+    uint N_LABELS   = 10;
+
+
     /* Loading dataset */
     vector<DataMat> *train_images, *train_labels, *test_images, *test_labels;
 
@@ -67,18 +90,12 @@ main(int argc, char **argv)
 
 
     /* Instantiating MLP */
-    int n_features = 28*28;
-    int n_labels   = 10;
-
-    MLP net(n_features, n_labels, 256, 64, 0.01);
+    MLP net(N_FEATURES, N_LABELS, 256, 64, 0.01);
     MSELoss loss;
 
 
     /* Experiments logs */
-    double *cmp_time, *val_accs, *train_losses;
-    cmp_time     = new double[N_EPOCHS];
-    val_accs     = new double[N_EPOCHS];
-    train_losses = new double[N_EPOCHS];
+    double cmp_time[N_EPOCHS], val_accs[N_EPOCHS], train_losses[N_EPOCHS];
 
  
     /* Training the network */
@@ -134,9 +151,6 @@ main(int argc, char **argv)
     delete train_labels;
     delete test_images;
     delete test_labels;
-    delete val_accs;
-    delete train_losses;
-    delete cmp_time;
 
     return 0;
 }

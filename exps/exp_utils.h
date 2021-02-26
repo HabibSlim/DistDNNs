@@ -4,6 +4,7 @@
 using namespace std;
 
 #include <stdio.h>
+#include <string>
 #include <algorithm>
 #include "../types.h"
 #include "../losses/loss.h"
@@ -116,3 +117,37 @@ log_exp(char* fname, double* data, int size)
 
     fclose(fh);
 }
+
+/* Command line parameters parser */
+class ParamParser{
+    private:
+        vector<string> tokens;
+    public:
+        ParamParser(int &argc, char **argv)
+        {
+            for (int i=1; i < argc; ++i)
+                this->tokens.push_back(string(argv[i]));
+        }
+
+        int
+        get_opt(const string &option) const
+        {
+            vector<string>::const_iterator itr;
+            itr = find(this->tokens.begin(), this->tokens.end(), option);
+            if (itr != this->tokens.end() && ++itr != this->tokens.end()){
+                try {
+                    return stoi(*itr);
+                } catch(exception const& e) {
+                    throw runtime_error("[get_opt] Non-numerical argument for "+option+" : ["+*itr+"].");
+                }
+            }
+            throw runtime_error("[get_opt] No value specified after: ["+option+"].");
+        }
+
+        bool
+        opt_exists(const string &option) const
+        {
+            return find(this->tokens.begin(), this->tokens.end(), option)
+                   != this->tokens.end();
+        }
+};

@@ -9,10 +9,10 @@ all: clean $(OBJS)
 	$(CC) -g $(OBJS) -o $(OUT) $(LFLAGS)
 
 serial.o: ./exps/serial.cpp
-	$(CC) $(FLAGS) ./exps/serial.cpp -std=c++14
+	$(CC) $(FLAGS) ./exps/serial.cpp -std=c++17
 
 test.o: clean ./exps/test.cpp
-	$(CC) $(FLAGS) ./exps/test.cpp -std=c++14
+	$(CC) $(FLAGS) ./exps/test.cpp -std=c++17
 
 .PHONY: clean
 clean:

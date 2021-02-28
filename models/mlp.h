@@ -12,9 +12,9 @@ private:
     int m_inSize, m_outSize;
     int m_size_h1, m_size_h2;
 
+public:
     float m_lr;
 
-public:
     MLP(int in_size, int out_size,
         int size_h1, int size_h2, float lr)
     {
@@ -33,15 +33,21 @@ public:
     void
     define()
     {
-        add(new Linear(m_inSize, m_size_h1, m_lr));
+        add(new Linear(m_inSize, m_size_h1, &m_lr));
         add(new LeakyReLU());
         add(new Dropout(0.2));
 
-        add(new Linear(m_size_h1, m_size_h2, m_lr));
+        add(new Linear(m_size_h1, m_size_h2, &m_lr));
         add(new LeakyReLU());
         add(new Dropout(0.2));
 
-        add(new Linear(m_size_h2, m_outSize, m_lr));
+        add(new Linear(m_size_h2, m_outSize, &m_lr));
         add(new Softmax());
+    }
+
+    void
+    set_lr(float lr)
+    {
+        this->m_lr = lr;
     }
 };

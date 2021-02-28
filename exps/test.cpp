@@ -70,6 +70,26 @@ evaluate(Model* net,
     return 100*float(acc_count)/total;
 }
 
+void
+deep_copy_net(vector<IOParam*>* net, vector<IOParam*>* net_copy)
+{
+    /* Allocating structure */
+    if (net_copy->size() == 0) {
+        float *ptr;
+        for (auto const& p: *net) {
+            ptr = new float[p->size];
+            net_copy->push_back(make_param(ptr, p->size));
+        }
+    }
+
+    int i=0;
+    for (auto const& p: *net) {
+        for (int j=0; j<p->size; j++)
+            net_copy->at(i)->p[j] = p->p[j];
+        i++;
+    }
+}
+
 
 int
 main(int argc, char **argv)
@@ -118,6 +138,10 @@ main(int argc, char **argv)
     /* Serializing network weights */
     vector<IOParam*>* serial_net = net.serialize();
 
+    /* Copying weights */
+    vector<IOParam*>* net_copy = new vector<IOParam*>();
+    deep_copy_net(serial_net, net_copy);
+
     MLP new_net(n_features, n_labels, 256, 64, 0.01);
     new_net.load(serial_net);
     val_acc = evaluate(&new_net,
@@ -125,6 +149,14 @@ main(int argc, char **argv)
                        test_labels);
 
     std::cout << "Serialized net acc.="
+              << int(val_acc*100)/float(100) << "%" << std::endl;
+
+    new_net.load(net_copy);
+    val_acc = evaluate(&new_net,
+                       test_images,
+                       test_labels);
+
+    std::cout << "Deep copied net acc.="
               << int(val_acc*100)/float(100) << "%" << std::endl;
 
     /* Freeing memory */

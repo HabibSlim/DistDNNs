@@ -11,8 +11,6 @@ class Linear: public Layer {
 private:
     /* Layer sizes */
     int m_inSize, m_outSize;
-    /* Learning rate */
-    float m_lr;
 
     /* Weight matrix */
     IOMat m_W;
@@ -24,7 +22,10 @@ private:
     const int SERIAL_MAX = 2;
 
 public:
-    Linear(int in_features, int out_features, float learning_rate, bool to_init=true)
+    /* Learning rate */
+    float* m_lr;
+
+    Linear(int in_features, int out_features, float* learning_rate, bool to_init=true)
     : Layer("Net::Linear", true)
     {
         this->m_inSize  = in_features;
@@ -83,8 +84,8 @@ public:
         db.noalias() = grad_out.colwise().sum();
 
         /* Updating weights via SGD */
-        m_W = (m_W - m_lr*dW).eval();
-        m_b = (m_b - m_lr*db).eval();
+        m_W = (m_W - (*m_lr)*dW).eval();
+        m_b = (m_b - (*m_lr)*db).eval();
     }
 
     vector<IOParam*>*

@@ -69,8 +69,8 @@ load_images(Dataset dset, int batch_size)
         if(magic_number != 2051) throw runtime_error("[load_images] Invalid image file.");
 
         file.read((char *)&n_images, sizeof(n_images)); n_images = reverse_int(n_images);
-        file.read((char *)&n_rows, sizeof(n_rows)); n_rows = reverse_int(n_rows);
-        file.read((char *)&n_cols, sizeof(n_cols)); n_cols = reverse_int(n_cols);
+        file.read((char *)&n_rows,   sizeof(n_rows));   n_rows   = reverse_int(n_rows);
+        file.read((char *)&n_cols,   sizeof(n_cols));   n_cols   = reverse_int(n_cols);
 
         image_size = n_rows*n_cols;
 

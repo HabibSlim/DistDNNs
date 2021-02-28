@@ -10,7 +10,7 @@
 
 
 #define MASTER_RANK 0
-#define EXP_NAME    "param_avg"
+#define EXP_NAME    "w_param_avg"
 
 
 float
@@ -147,7 +147,7 @@ main(int argc, char **argv)
 
 
     /* Instantiating model  */
-    MLP net(N_FEATURES, N_LABELS, 256, BATCH_SIZE, 0.01);
+    MLP net(N_FEATURES, N_LABELS, 256, 64, 0.01);
     MSELoss loss;
 
     float avg_loss = 0;
@@ -175,7 +175,7 @@ main(int argc, char **argv)
         /* Splitting dataset */
         if (pid == MASTER_RANK) {
             if (!EVAL_ACC) t0 = chrono::high_resolution_clock::now();
-            shuffle_indexes(data_idx, N_BATCHES, pcount);
+            shuffle_indexes(data_idx, N_BATCHES);
         }
 
         /* Scattering batch indexes */

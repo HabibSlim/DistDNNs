@@ -89,7 +89,7 @@ init_datamats(int n_mats, int n_rows, int n_cols)
 
 /* Shuffling batch indices */
 uint*
-shuffle_indexes(uint *idx_tot, uint n_batches, int p)
+shuffle_indexes(uint *idx_tot, uint n_batches)
 {
     for (uint i=0; i<n_batches; i++)
         idx_tot[i] = i;

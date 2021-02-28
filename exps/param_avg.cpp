@@ -93,7 +93,7 @@ main(int argc, char **argv)
 
 
     /* Instantiating model  */
-    MLP net(N_FEATURES, N_LABELS, 256, BATCH_SIZE, 0.01);
+    MLP net(N_FEATURES, N_LABELS, 256, 64, 0.01);
     MSELoss loss;
 
     float avg_loss = 0;

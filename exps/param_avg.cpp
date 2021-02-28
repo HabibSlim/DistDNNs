@@ -112,8 +112,9 @@ main(int argc, char **argv)
     double cmp_time[N_EPOCHS], val_accs[N_EPOCHS], train_losses[N_EPOCHS];
 
     /* Training loop */
+    int delay;
     float val_acc;
-    chrono::time_point<chrono::high_resolution_clock> t0, t1;
+    chrono::time_point<chrono::high_resolution_clock> t0, t1, v0, v1;
     vector<IOParam*>* serial_net;
 
     for (int j=0; j<N_EPOCHS; j++) {
@@ -138,6 +139,8 @@ main(int argc, char **argv)
 
         /* Reducing weights */
         if (AVG_FREQ!=0 && j%AVG_FREQ==0 && j!=N_EPOCHS-1){
+            if (pid == MASTER_RANK)
+                v0 = chrono::high_resolution_clock::now();
             serial_net = net.serialize();
             for (auto const& p: *serial_net) {
                 /* Applying sum reduction */
@@ -148,8 +151,11 @@ main(int argc, char **argv)
                 for (int i=0; i<p->size; i++)
                     p->p[i] /= pcount;
             }
-            if (pid == MASTER_RANK)
+            if (pid == MASTER_RANK) {
                 printf("[t=%d] Weights averaged!\n", j);
+                v1 = chrono::high_resolution_clock::now();
+                delay = chrono::duration_cast<chrono::milliseconds>(v1 - v0).count();
+            }
         }
 
         /* Evaluating metrics */
@@ -167,6 +173,7 @@ main(int argc, char **argv)
             } else {
                 t1 = chrono::high_resolution_clock::now();
                 cmp_time[j] = chrono::duration_cast<chrono::milliseconds>(t1 - t0).count();
+                printf("[Delays] %d - %d", delay, (int)cmp_time[j]);
             }
             std::cout << std::endl;
         }

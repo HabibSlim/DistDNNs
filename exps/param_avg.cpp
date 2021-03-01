@@ -120,7 +120,7 @@ main(int argc, char **argv)
         /* Splitting dataset */
         if (pid == MASTER_RANK) {
             if (!EVAL_ACC) t0 = chrono::high_resolution_clock::now();
-            shuffle_indexes(data_idx, N_BATCHES, pcount);
+            shuffle_indexes(data_idx, N_BATCHES);
         }
 
         /* Scattering batch indexes */

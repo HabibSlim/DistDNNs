@@ -81,12 +81,12 @@ main(int argc, char **argv)
     vector<DataMat> *train_images, *train_labels, *test_images, *test_labels;
 
     /* Training set */
-    train_images = load_images(MNIST_TRAIN, BATCH_SIZE);
-    train_labels = load_labels(MNIST_TRAIN, BATCH_SIZE);
+    train_images = load_images(FASHION_MNIST_TRAIN, BATCH_SIZE);
+    train_labels = load_labels(FASHION_MNIST_TRAIN, BATCH_SIZE);
 
     /* Test set */
-    test_images = load_images(MNIST_TEST, BATCH_SIZE);
-    test_labels = load_labels(MNIST_TEST, BATCH_SIZE);
+    test_images = load_images(FASHION_MNIST_TEST, BATCH_SIZE);
+    test_labels = load_labels(FASHION_MNIST_TEST, BATCH_SIZE);
 
 
     /* Instantiating MLP */

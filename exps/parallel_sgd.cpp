@@ -97,10 +97,11 @@ main(int argc, char **argv)
 
 
     /* Experiment logs */
-    double cmp_time[N_EPOCHS];
+    double cmp_time[N_EPOCHS], val_accs[N_EPOCHS], train_losses[N_EPOCHS];
 
     /* Training loop */
-    float val_acc;
+    float val_acc, avg_loss = 0.;
+    int loss_count = 0;
     chrono::time_point<chrono::high_resolution_clock> t0, t1;
 
     /* Serialized data */
@@ -155,6 +156,11 @@ main(int argc, char **argv)
             net.load_grad(serial_grads);
 
             MPI::COMM_WORLD.Barrier();
+
+            if (pid == MASTER_RANK && k%(N_BATCHES/25) == 0) {
+                avg_loss += loss.loss();
+                loss_count += 1;
+            }
         }
 
         /* Evaluating metrics */
@@ -165,6 +171,11 @@ main(int argc, char **argv)
                                    test_images,
                                    test_labels);
                 std::cout << ", Val.Acc.=" << int(val_acc*100)/float(100);
+                std::cout << ", Loss.=" << int((avg_loss/loss_count)*1000)/float(1000);
+
+                train_losses[j] = avg_loss/loss_count;
+                if (j!=N_EPOCHS-1) val_accs[j] = val_acc;
+                avg_loss = 0.;
             } else {
                 t1 = chrono::high_resolution_clock::now();
                 cmp_time[j] = chrono::duration_cast<chrono::milliseconds>(t1 - t0).count();
@@ -179,16 +190,26 @@ main(int argc, char **argv)
         val_acc = evaluate(&net,
                             test_images,
                             test_labels);
+        val_accs[N_EPOCHS-1] = val_acc;
         std::cout << "Final val. acc.="
                   << int(val_acc*100)/float(100)
                   << "%" << std::endl;
 
         /* Logging measurements */
         char fname[200];
+        if (EVAL_ACC) {
+            /* Master val. accuracies */
+            sprintf(fname, "./logs/%s_N%d_B%d_acc.txt", EXP_NAME, pcount, BATCH_SIZE);
+            log_exp(fname, val_accs, N_EPOCHS);
 
-        /* Epoch durations */
-        sprintf(fname, "./logs/%s_N%d_B%d_time.txt", EXP_NAME, pcount, BATCH_SIZE);    
-        log_exp(fname, cmp_time, N_EPOCHS);        
+            /* Master losses */
+            sprintf(fname, "./logs/%s_N%d_B%d_loss.txt", EXP_NAME, pcount, BATCH_SIZE);
+            log_exp(fname, train_losses, N_EPOCHS);
+        } else {
+            /* Epoch durations */
+            sprintf(fname, "./logs/%s_N%d_B%d_time.txt", EXP_NAME, pcount, BATCH_SIZE);    
+            log_exp(fname, cmp_time, N_EPOCHS);        
+        }
     }
 
 

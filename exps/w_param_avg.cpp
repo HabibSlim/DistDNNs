@@ -180,7 +180,7 @@ main(int argc, char **argv)
 
         /* Scattering batch indexes */
         MPI::COMM_WORLD.Scatter(data_idx,   batch_per_p, MPI::UNSIGNED,
-                                data_split, batch_per_p, MPI::UNSIGNED, 0);
+                                data_split, batch_per_p, MPI::UNSIGNED, MASTER_RANK);
 
         /* Updating the learning rate */
         // l_r *= (1./(1. + decay*j));
@@ -255,14 +255,14 @@ main(int argc, char **argv)
     for (auto const& p: *serial_net) {
         if (pid == MASTER_RANK) {
             MPI::COMM_WORLD.Reduce(MPI::IN_PLACE, p->p, p->size,
-                                   MPI::FLOAT, MPI::SUM, 0);
+                                   MPI::FLOAT, MPI::SUM, MASTER_RANK);
 
             /* Averaging values */
             for (int i=0; i<p->size; i++)
                 p->p[i] /= pcount;
         } else {
             MPI::COMM_WORLD.Reduce(p->p, p->p, p->size,
-                                   MPI::FLOAT, MPI::SUM, 0);
+                                   MPI::FLOAT, MPI::SUM, MASTER_RANK);
         }
     }
 

@@ -115,8 +115,8 @@ main(int argc, char **argv)
                 << ", Loss=" << avg_loss;
         if (EVAL_ACC) {
             val_acc = evaluate(&net,
-                            test_images,
-                            test_labels);
+                               test_images,
+                               test_labels);
             std::cout << ", Val.Acc.=" << int(val_acc*100)/float(100);
 
             train_losses[j] = avg_loss;

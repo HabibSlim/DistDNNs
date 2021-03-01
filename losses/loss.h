@@ -7,8 +7,6 @@ class Loss {
 protected:
     /* Previous pass refs */
     const IOMat *m_pred, *m_real;
-    /* Gradient matrix */
-    IOMat m_grad;
 
     /* Cumulative loss */
     bool m_grad_init, m_loss_computed;
@@ -17,6 +15,9 @@ protected:
     virtual float loss_fn() = 0;
 
 public:
+    /* Gradient matrix */
+    IOMat m_grad;
+
     Loss()
     {
         m_loss = 0.0;
@@ -48,5 +49,5 @@ public:
     }
 
     /* Get the error gradient */
-    const IOMat& grad() { return m_grad; }
+    IOMat& grad() { return m_grad; }
 };

@@ -17,14 +17,16 @@ public:
     }
 
     void
-    backward(const IOMat& grad_out)
+    void backward(const IOMat& grad_out, bool no_update=false) 
     {   
         m_grad.array() = (1 - m_Z.array().square())*grad_out.array();
     }
 
-    void update(const IOMat& grad_out) {;}
-
     vector<IOParam*>* serialize() { return NULL; }
 
     bool load(IOParam* param) { return false; };
+
+    vector<IOParam*>* serialize_grad() { return NULL; }
+
+    bool load_grad(IOParam* param) { return false; };
 };

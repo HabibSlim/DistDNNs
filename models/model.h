@@ -114,18 +114,18 @@ public:
 
     /* Backward pass */
     void
-    backward(const IOMat& G)
+    backward(const IOMat& G, bool no_update=false)
     {
         DAG* n = m_DAG_last->prev;
         if (n->l == NULL)
             throw runtime_error("[model.h] No layer registered in the model.");
 
         /* First backward pass */
-        n->l->backward(G);
+        n->l->backward(G, no_update);
 
         while (n->prev != NULL && n->prev->l != NULL) {
             n = n->prev;
-            n->l->backward(n->next->l->grad());
+            n->l->backward(n->next->l->grad(), no_update);
         }
     }
 
@@ -188,5 +188,66 @@ public:
 
         if (p_count != params->size())
             throw runtime_error("[model.h] Serialized parameters given do not match with existing layers.");
+    }
+
+    /* Serializing model gradients */
+    vector<IOParam*>*
+    serialize_grad()
+    {
+        auto* params = new vector<IOParam*>();
+        DAG* n = m_DAG_first;
+
+        /* Updating with safety check */
+        auto add_p = [&](Layer* l)
+        {
+            vector<IOParam*>* p;
+            if (l->to_serialize()) {
+                p = l->serialize_grad();
+                params->insert(params->end(), p->begin(), p->end());
+
+                delete p;
+            }
+        };
+
+        if (n->l == NULL)
+            throw runtime_error("[model.h] No layer registered in the model.");
+
+        add_p(n->l);
+        while (n->next != NULL && n->next->l != NULL) {
+            n = n->next;
+            add_p(n->l);
+        }
+
+        return params;
+    }
+
+    /* Loading model gradients (and updating weights) */
+    void
+    load_grad(vector<IOParam*>* params)
+    {
+        DAG* n = m_DAG_first;
+        bool all_loaded = false;
+        unsigned int p_count = 0;
+
+        /* Instantiating layers */
+        init();
+
+        for (auto const& p: *params) {
+            /* Skipping layers with no parameters */
+            while (n != NULL && (n->l != NULL && !n->l->to_serialize())) {
+                n = n->next;
+            }
+            if (n == NULL || n->l == NULL)
+                throw runtime_error("[model.h] Serialized gradients given do not match with existing layers.");
+
+            /* Multiple parameters can belong to the same layer */
+            all_loaded = n->l->load_grad(p);
+
+            if (all_loaded) n = n->next;
+            p_count ++;
+        }
+
+        if (p_count != params->size())
+            throw runtime_error("[model.h] Serialized gradients given do not match with existing layers.");
     }
 };

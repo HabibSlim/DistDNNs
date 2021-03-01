@@ -16,9 +16,13 @@ private:
     IOMat m_W;
     /* Bias vector */
     IOVec m_b;
+
+    /* Derivatives */
+    IOMat m_dW, m_db;
     
     /* Parameters serialization */
     int m_serial_loaded;
+    int m_serial_grad_loaded;
     const int SERIAL_MAX = 2;
 
 public:
@@ -33,6 +37,7 @@ public:
 
         this->m_lr = learning_rate;
         this->m_serial_loaded = 0;
+        this->m_serial_grad_loaded = 0;
 
         if (to_init) init();
     }
@@ -63,29 +68,29 @@ public:
     }
 
     void
-    backward(const IOMat& grad_out)
+    backward(const IOMat& grad_out, bool no_update=false)
     {
         /* Computing gradient */
         m_grad.noalias() = grad_out*m_W.transpose();
 
+        /* Computing d(W) */
+        m_dW.noalias() = m_X->transpose()*grad_out;
+
+        /* Computing d(b) */
+        m_db.noalias() = grad_out.colwise().sum();
+
         /* Updating weights */
-        update(grad_out);
+        if (!no_update) {
+            update();
+        }
     }
 
     void
-    update(const IOMat& grad_out)
+    update()
     {
-        IOMat dW, db;
-
-        /* Computing d(W) */
-        dW.noalias() = m_X->transpose()*grad_out;
-
-        /* Computing d(b) */
-        db.noalias() = grad_out.colwise().sum();
-
         /* Updating weights via SGD */
-        m_W = (m_W - (*m_lr)*dW).eval();
-        m_b = (m_b - (*m_lr)*db).eval();
+        m_W = (m_W - (*m_lr)*m_dW).eval();
+        m_b = (m_b - (*m_lr)*m_db).eval();
     }
 
     vector<IOParam*>*
@@ -96,6 +101,18 @@ public:
         /* Adding weights and biases */
         p_->push_back(make_param(m_W.data(), m_W.size()));
         p_->push_back(make_param(m_b.data(), m_b.size()));
+
+        return p_;
+    }
+
+    vector<IOParam*>*
+    serialize_grad()
+    {
+        auto* p_ = new vector<IOParam*>();
+        
+        /* Adding weights and biases */
+        p_->push_back(make_param(m_dW.data(), m_dW.size()));
+        p_->push_back(make_param(m_db.data(), m_db.size()));
 
         return p_;
     }
@@ -120,6 +137,33 @@ public:
         m_serial_loaded++;
         if (m_serial_loaded == SERIAL_MAX) {
             m_serial_loaded = 0;
+            return true;
+        } else return false;
+    }
+
+    bool
+    load_grad(IOParam* param)
+    {
+        /* Copying buffers */
+        if (m_serial_grad_loaded == 0){
+            if (param->size != m_W.size())
+                throw runtime_error("[linear.h] Serialized gradients given do not match with existing layers.");
+            m_dW = IOMat::Map(param->p, m_dW.rows(), m_dW.cols());
+        } else {
+            if (param->size != m_b.size())
+                throw runtime_error("[linear.h] Serialized gradients given do not match with existing layers.");
+            m_db = IOVec::Map(param->p, m_db.rows(), m_db.cols());
+        }
+
+        /* Updating layer state:
+          -> return true if all gradients have been loade
+        */
+        m_serial_grad_loaded++;
+        if (m_serial_grad_loaded == SERIAL_MAX) {
+            m_serial_grad_loaded = 0;
+
+            /* Updating the weights */
+            update();
             return true;
         } else return false;
     }

@@ -42,7 +42,7 @@ map<Dataset,string> label_files =
 
 /* PRNGs */
 random_device RNG_DEV{};
-mt19937 gen{RNG_DEV()};
+mt19937 gen{1337};//RNG_DEV()};
 
 
 int

@@ -1,4 +1,4 @@
-OBJS	= param_avg.o w_param_avg.o test.o
+OBJS	= param_avg.o w_param_avg.o parallel_sgd.o test.o
 HEADER	= types.h utils.h activations/leakyrelu.h activations/relu.h layers/conv.h layers/net.h layers/linear.h layers/layer.h
 OUT		= runmpi
 CC	 	= mpic++
@@ -13,6 +13,9 @@ param_avg: clean param_avg.o
 w_param_avg: clean w_param_avg.o
 	$(CC) -g w_param_avg.o -o $(OUT) $(LFLAGS)
 
+parallel_sgd: clean parallel_sgd.o
+	$(CC) -g parallel_sgd.o -o $(OUT) $(LFLAGS)
+
 # Objects
 
 param_avg.o: ./exps/param_avg.cpp
@@ -20,6 +23,9 @@ param_avg.o: ./exps/param_avg.cpp
 
 w_param_avg.o: ./exps/w_param_avg.cpp
 	$(CC) $(FLAGS) ./exps/w_param_avg.cpp -std=c++17
+
+parallel_sgd.o: ./exps/parallel_sgd.cpp
+	$(CC) $(FLAGS) ./exps/parallel_sgd.cpp -std=c++17
 
 test.o: clean ./exps/test.cpp
 	$(CC) $(FLAGS) ./exps/test.cpp -std=c++17

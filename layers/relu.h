@@ -17,15 +17,17 @@ public:
     }
 
     void
-    backward(const IOMat& grad_out)
+    void backward(const IOMat& grad_out, bool no_update=false) 
     {   
         m_grad.noalias() = grad_out.cwiseProduct(
             m_X->unaryExpr([](const float x) { return float(x>0 ? 1 : 0); }));
     }
 
-    void update(const IOMat& grad_out) {;}
-
     vector<IOParam*>* serialize() { return NULL; }
 
     bool load(IOParam* param) { return false; };
+
+    vector<IOParam*>* serialize_grad() { return NULL; }
+
+    bool load_grad(IOParam* param) { return false; };
 };

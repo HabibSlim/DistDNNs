@@ -48,11 +48,8 @@ public:
     const IOMat& out() { return m_Z; }
 
     /* Backpropagation: compute grad and update weights  */
-    virtual void backward(const IOMat& grad_out) = 0;
+    virtual void backward(const IOMat& grad_out, bool no_update=false) = 0;
     const IOMat& grad() { return m_grad; }
-
-    /* Updating weights */
-    virtual void update(const IOMat& grad_out) = 0;
 
     /* Layer name */
     const string& name() { return m_name; }
@@ -68,4 +65,10 @@ public:
 
     /* Loading layer parameters */
     virtual bool load(IOParam* param) = 0;
+
+    /* Serializing model gradients */
+    virtual vector<IOParam*>* serialize_grad() = 0;
+
+    /* Loading and updating gradients */
+    virtual bool load_grad(IOParam* param) = 0;
 };

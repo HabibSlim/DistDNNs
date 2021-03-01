@@ -4,11 +4,14 @@ CMP	= runmpi runserial test
 serial:
 	make -f ./make/makefile.serial
 
-param_avg: 	 # -> Multiple parameter averaging
+param_avg: 	  # -> Multiple parameter averaging
 	make -f ./make/makefile.mpi param_avg
 
-w_param_avg: # -> Weighted parameter averaging
+w_param_avg:  # -> Weighted parameter averaging
 	make -f ./make/makefile.mpi w_param_avg
+
+parallel_sgd: # -> Parallel SGD
+	make -f ./make/makefile.mpi parallel_sgd
 
 # Test target
 test:

@@ -24,11 +24,8 @@ main(int argc, char **argv)
 
 
     /* Parsing input parameters */
-    int AVG_FREQ = 0, BATCH_SIZE = 64, N_EPOCHS = 1, EVAL_ACC = 0;
+    int BATCH_SIZE = 64, N_EPOCHS = 1, EVAL_ACC = 0;
     ParamParser params(argc, argv);
-    if (params.opt_exists("-avg_freq")) {
-        AVG_FREQ = params.get_opt("-avg_freq");
-    }
     if (params.opt_exists("-batch_size")) {
         BATCH_SIZE = params.get_opt("-batch_size");
     }
@@ -40,23 +37,16 @@ main(int argc, char **argv)
     }
 
     /* Printing all parameters */
+    uint SBATCH_SIZE = BATCH_SIZE/pcount; // Subbatch size
     if (pid == MASTER_RANK) {
-        if (EVAL_ACC == 0)
-            printf("[param_avg] Evaluating speedup.\n");
-        else
-            printf("[param_avg] Evaluating accuracy/training loss.\n");
         printf("[param_avg] Number of processors: %d\n", pcount);
-        if (AVG_FREQ == 0)
-            printf("[param_avg] Averaging a single time at the end of training.\n");
-        else
-            printf("[param_avg] Averaging every %d epochs\n", AVG_FREQ);
         printf("[param_avg] Batch size: %d\n", BATCH_SIZE);
+        printf("[param_avg] Subbatch size: %d\n", SBATCH_SIZE);
         printf("[param_avg] Number of epochs: %d\n", N_EPOCHS);
     }
 
 
     /* Training parameters */
-    uint SBATCH_SIZE = BATCH_SIZE/pcount;
     uint N_FEATURES  = 28*28;
     uint N_LABELS    = 10;
     uint N_BATCHES   = int(MNIST_TRAIN/SBATCH_SIZE);
@@ -96,101 +86,90 @@ main(int argc, char **argv)
     MLP net(N_FEATURES, N_LABELS, 256, 64, 0.01);
     MSELoss loss;
 
-    float avg_loss = 0;
-    int batch_per_epoch = int(N_BATCHES/N_EPOCHS);
-    uint *data_split, *data_idx;
+    uint subbatch_idx;
+    uint *data_idx;
 
     /* Initializing shared indices */
     if (pid == MASTER_RANK)
-        data_idx = new uint[???];
+        data_idx = new uint[N_BATCHES];
     else
         data_idx = NULL;
-    data_split = new uint[???];
 
 
     /* Experiment logs */
-    double cmp_time[N_EPOCHS], val_accs[N_EPOCHS], train_losses[N_EPOCHS];
+    double cmp_time[N_EPOCHS];
 
     /* Training loop */
     float val_acc;
     chrono::time_point<chrono::high_resolution_clock> t0, t1;
-    vector<IOParam*>* serial_net;
 
+    /* Serialized data */
+    vector<IOParam*> *serial_grads;
+
+    if (pid == MASTER_RANK) {
+        printf("N_BATCHES=%d\n", N_BATCHES);
+        printf("N_EPOCHS=%d\n", N_EPOCHS);
+        printf("SBATCH_SIZE=%d\n", SBATCH_SIZE);
+    }
+
+    IOMat images, labels, pred;
     for (int j=0; j<N_EPOCHS; j++) {
         /* Splitting dataset */
         if (pid == MASTER_RANK) {
-            if (!EVAL_ACC) t0 = chrono::high_resolution_clock::now();
+            t0 = chrono::high_resolution_clock::now();
             shuffle_indexes(data_idx, N_BATCHES);
         }
 
-        for(int k=0; k<batch_per_epoch; k++) {
-            /* Splitting batch into subbatch */
+        uint k;
+        for(k=0; ((k+1)*pcount-1)<N_BATCHES; k+=pcount) {
+            /* Scattering batch indices */
+            MPI::COMM_WORLD.Scatter(data_idx+k*pcount, 1, MPI::UNSIGNED,
+                                    &subbatch_idx,     1, MPI::UNSIGNED, MASTER_RANK);
 
+            /* Training for a single batch */
+            images = train_images->at(subbatch_idx).cast<float>()/255.;
+            labels = train_labels->at(subbatch_idx).cast<float>();
 
-            /* Scattering batch indexes */
-            MPI::COMM_WORLD.Scatter(data_idx,   batch_per_p, MPI::UNSIGNED,
-                                    data_split, batch_per_p, MPI::UNSIGNED, 0);
+            /* Forward pass */
+            pred = net(images);
+            /* Computing loss */
+            loss.error(pred, labels);
 
-            /* Training for a single epoch */
-            avg_loss = train_epoch(&net, &loss,
-                                data_split, batch_per_p,
-                                train_images,
-                                train_labels);
+            /* Gradient-only backward pass (no weight update) */
+            net.backward(loss.grad(), true);
 
-            /* Printing training statistics */
+            /* Serializing all gradients */
+            serial_grads = net.serialize_grad();
+            /* Reducing computed gradients */
+            for (auto const& p: *serial_grads) {
+                /* Applying sum reduction */
+                MPI::COMM_WORLD.Allreduce(MPI::IN_PLACE, p->p, p->size,
+                                          MPI::FLOAT,    MPI::SUM);
+
+                /* Averaging values */
+                for (int i=0; i<p->size; i++)
+                    p->p[i] /= pcount;
+            }
+
+            /* Performing local weight updates on all nodes */
+            net.load_grad(serial_grads);
+
             MPI::COMM_WORLD.Barrier();
-
-            /* Reducing weights */
-            if (AVG_FREQ!=0 && j%AVG_FREQ==0 && j!=N_EPOCHS-1){
-                serial_net = net.serialize();
-                for (auto const& p: *serial_net) {
-                    /* Applying sum reduction */
-                    MPI::COMM_WORLD.Allreduce(MPI::IN_PLACE, p->p, p->size,
-                                            MPI::FLOAT, MPI::SUM);
-
-                    /* Averaging values */
-                    for (int i=0; i<p->size; i++)
-                        p->p[i] /= pcount;
-                }
-                if (pid == MASTER_RANK)
-                    printf("[t=%d] Weights averaged!\n", j);
-            }
-
-            /* Evaluating metrics */
-            if (pid == MASTER_RANK) {
-                std::cout << "Epoch="  << (j+1)
-                        << ", Loss=" << avg_loss;
-                if (EVAL_ACC) {
-                    val_acc = evaluate(&net,
-                                    test_images,
-                                    test_labels);
-                    std::cout << ", Val.Acc.=" << int(val_acc*100)/float(100);
-
-                    train_losses[j] = avg_loss;
-                    if (j!=N_EPOCHS-1) val_accs[j] = val_acc;
-                } else {
-                    t1 = chrono::high_resolution_clock::now();
-                    cmp_time[j] = chrono::duration_cast<chrono::milliseconds>(t1 - t0).count();
-                }
-                std::cout << std::endl;
-            }
         }
-    }
 
-
-    /* Final weights reduction */
-    serial_net = net.serialize();
-    for (auto const& p: *serial_net) {
+        /* Evaluating metrics */
         if (pid == MASTER_RANK) {
-            MPI::COMM_WORLD.Reduce(MPI::IN_PLACE, p->p, p->size,
-                                   MPI::FLOAT, MPI::SUM, 0);
-
-            /* Averaging values */
-            for (int i=0; i<p->size; i++)
-                p->p[i] /= pcount;
-        } else {
-            MPI::COMM_WORLD.Reduce(p->p, p->p, p->size,
-                                   MPI::FLOAT, MPI::SUM, 0);
+            std::cout << "Epoch=" << (j+1);
+            if (EVAL_ACC) {
+                val_acc = evaluate(&net,
+                                   test_images,
+                                   test_labels);
+                std::cout << ", Val.Acc.=" << int(val_acc*100)/float(100);
+            } else {
+                t1 = chrono::high_resolution_clock::now();
+                cmp_time[j] = chrono::duration_cast<chrono::milliseconds>(t1 - t0).count();
+            }
+            std::cout << std::endl;
         }
     }
 
@@ -200,26 +179,16 @@ main(int argc, char **argv)
         val_acc = evaluate(&net,
                             test_images,
                             test_labels);
-        val_accs[N_EPOCHS-1] = val_acc;
         std::cout << "Final val. acc.="
                   << int(val_acc*100)/float(100)
                   << "%" << std::endl;
 
         /* Logging measurements */
         char fname[200];
-        if (EVAL_ACC) {
-            /* Master val. accuracies */
-            sprintf(fname, "./logs/%s_N%d_k%d_B%d_acc.txt", EXP_NAME, pcount, AVG_FREQ, BATCH_SIZE);
-            log_exp(fname, val_accs, N_EPOCHS);
 
-            /* Master losses */
-            sprintf(fname, "./logs/%s_N%d_k%d_B%d_loss.txt", EXP_NAME, pcount, AVG_FREQ, BATCH_SIZE);
-            log_exp(fname, train_losses, N_EPOCHS);
-        } else {
-            /* Epoch durations */
-            sprintf(fname, "./logs/%s_N%d_k%d_B%d_time.txt", EXP_NAME, pcount, AVG_FREQ, BATCH_SIZE);    
-            log_exp(fname, cmp_time, N_EPOCHS);        
-        }
+        /* Epoch durations */
+        sprintf(fname, "./logs/%s_N%d_B%d_time.txt", EXP_NAME, pcount, BATCH_SIZE);    
+        log_exp(fname, cmp_time, N_EPOCHS);        
     }
 
 

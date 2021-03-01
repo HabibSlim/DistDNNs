@@ -43,14 +43,16 @@ public:
     }
 
     void
-    backward(const IOMat& grad_out)
+    backward(const IOMat& grad_out, bool no_update=false)
     {   
         m_grad.noalias() = grad_out.cwiseProduct(m_M);
     }
 
-    void update(const IOMat& grad_out) {;}
-
     vector<IOParam*>* serialize() { return NULL; }
 
     bool load(IOParam* param) { return false; }
+
+    vector<IOParam*>* serialize_grad() { return NULL; }
+
+    bool load_grad(IOParam* param) { return false; };
 };

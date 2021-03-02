@@ -1,4 +1,4 @@
-/* Hyperbolic Tangent Activation */
+/* Hyperbolic Tangent activation layer */
 #pragma once
 #include "../utils.h"
 #include "../types.h"

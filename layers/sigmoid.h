@@ -1,4 +1,4 @@
-/* Sigmoid Activation Layer */
+/* Sigmoid activation Layer */
 #pragma once
 #include "../utils.h"
 #include "../types.h"

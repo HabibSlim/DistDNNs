@@ -1,4 +1,4 @@
-/* Softmax Activation Layer */
+/* Softmax activation Layer */
 #pragma once
 #include "../utils.h"
 #include "../types.h"

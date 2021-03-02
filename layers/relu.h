@@ -1,4 +1,4 @@
-/* Rectified Linear Unit Activation Layer*/
+/* Rectified Linear Unit activation layer */
 #pragma once
 #include "../utils.h"
 #include "../types.h"

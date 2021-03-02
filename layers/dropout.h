@@ -1,4 +1,4 @@
-/* Gaussian Dropout Regularization Layer*/
+/* Gaussian Dropout Regularization Layer */
 #pragma once
 #include "../utils.h"
 #include "../types.h"

@@ -1,3 +1,4 @@
+/* LeakyReLU activation layer */
 #pragma once
 #include "../utils.h"
 #include "../types.h"

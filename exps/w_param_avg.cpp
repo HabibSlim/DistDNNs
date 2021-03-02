@@ -1,3 +1,4 @@
+/* Weighted parameter averaging */
 #include <iostream>
 #include <chrono>
 #include <math.h>

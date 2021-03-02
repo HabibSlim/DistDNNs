@@ -1,6 +1,4 @@
-/*
-  Utility functions for experiments.
-*/
+/* Utility functions for experiments. */
 using namespace std;
 
 #include <stdio.h>

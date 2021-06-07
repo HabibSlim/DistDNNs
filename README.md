@@ -5,12 +5,8 @@
 <b>Habib Slim</b>
 </p>
 
-# Important
-
-In order to upload on TEIDE, the MNIST and F-MNIST datasets were removed from the folder. The following Git repository will have to be cloned to download them (which also contains a copy of this code):
-
-https://github.com/HabibSlim/HPCProj
-
+# Report
+Click [HERE](report.pdf) to download the final report.
 
 # Dependencies
 This project uses the following external dependencies:

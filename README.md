@@ -1,19 +1,39 @@
+<div align="center">
 <h1 align="center">
-    High Performance Computing: Speeding up DNN training
+    Speeding up DNN training in distributed environments
 </h1>
+
+[![C++](https://img.shields.io/badge/C++-17-red?logo=c%2B%2B&logoColor=white)](https://en.wikipedia.org/wiki/C%2B%2B17)
+[![Eigen](https://img.shields.io/badge/Eigen-3.0-brown?logo=Eigen&logoColor=white)](http://eigen.tuxfamily.org/)
+[![OpenMPI](https://img.shields.io/badge/OpenMPI-2.1.1-blue?logo=Eigen&logoColor=white)](https://www.open-mpi.org/)
+
+\[[Report](./report.pdf)\]
+
 <p align="center">
-<b>Habib Slim</b>
-</p>
+     <img src="./main_fig.svg" width=500px/>
+</p> 
+</div>
 
-# Report
-Click [HERE](report.pdf) to download the final report.
 
-# Dependencies
-This project uses the following external dependencies:
-- Eigen3, for basic matrix operations
-- Open MPI 2.1.1
+## Summary
 
-# Usage
+* [Introduction](#introduction)
+* [Running](#running)
+* [References](#references)
+
+## Introduction
+
+This repository contains a minimal framework to quickly prototype deep architectures and facilitate weight and gradients sharing among processing nodes.
+
+We introduce and implement parallel DNN optimization algorithms and conduct a (hopefully complete) benchmark of the different methods, evaluated on the MNIST and Fashion-MNIST datasets.
+For a full description of the project, you can check out the [project report](./report.pdf)!
+
+## Running
+
+This project uses the following dependencies:
+- Eigen3, for basic matrix operations (also included in the repository)
+- OpenMPI 2.1.1
+
 The list of experiments available is as follows:
 - `param_avg`: Weight averaging algorithm described in the report.
 - `parallel_sgd`: Gradient averaging algorithm described in the report.
@@ -21,11 +41,15 @@ The list of experiments available is as follows:
 
 To compile and run the experiments, from the root directory:
 
-`make [experiment_name]`
+```bash
+make experiment_name
+```
 
 And then, for an MPI experiment:
 
-`mpiexec -n n_cores runmpi -options`
+```bash
+mpiexec -n n_cores runmpi -options
+```
 
 Parameters are as follows. For all experiments, the following arguments are available:
 - `-batch_size`: Size of each batch
@@ -41,6 +65,7 @@ Specifically to the following methods, additional parameters are available
 - `-lambda`: Value of the lambda parameter (integer, divided by 100).
 
 
-# Main references
+## References
 1. [Ben-Nun et al., 2018] Demystifying parallel and distributed deep learning: An in-depth concurrency analysis
-2. [Ericson et al., 2017] On the Performance of Network Parallel Training in Artificial Neural Networks
+2. [Ericson et al., 2017] On the performance of network parallel training in artificial neural networks
+3. [Han Xiao et al., 2017] Fashion-MNIST: a novel image dataset for benchmarking machine learning algorithms.
